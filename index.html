@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Visual RAG Learning Tool (7‑Step)</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <!-- =====================================================
+       STYLES – modern, calm, product‑like UI
+       ===================================================== -->
+  <style>
+    :root {
+      --bg: #0b1220;
+      --panel: #111a2e;
+      --accent: #38bdf8;
+      --accent-2: #4ade80;
+      --text: #e5e7eb;
+      --muted: #94a3b8;
+      --border: #1f2a44;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+    }
+
+    header {
+      padding: 24px;
+      border-bottom: 1px solid var(--border);
+      text-align: center;
+    }
+
+    header h1 { margin: 0; font-size: 1.8rem; }
+    header p { margin-top: 6px; color: var(--muted); }
+
+    main {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 24px;
+      display: grid;
+      grid-template-columns: 420px 1fr;
+      gap: 24px;
+    }
+
+    .card {
+      background: var(--panel);
+      border-radius: 14px;
+      padding: 20px;
+      border: 1px solid var(--border);
+    }
+
+    h2 {
+      font-size: 1.1rem;
+      margin-top: 0;
+    }
+
+    label {
+      font-size: 0.85rem;
+      color: var(--muted);
+    }
+
+    textarea, input, select {
+      width: 100%;
+      margin-top: 6px;
+      padding: 10px;
+      border-radius: 8px;
+      background: #060b18;
+      color: var(--text);
+      border: 1px solid var(--border);
+    }
+
+    button {
+      margin-top: 12px;
+      padding: 10px 14px;
+      border-radius: 8px;
+      border: none;
+      background: var(--accent);
+      color: #020617;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    button.secondary {
+      background: #1e293b;
+      color: var(--text);
+    }
+
+    button:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+
+    .step {
+      margin-bottom: 18px;
+      padding-left: 12px;
+      border-left: 3px solid var(--border);
+    }
+
+    .step.active { border-left-color: var(--accent); }
+    .step.done { border-left-color: var(--accent-2); }
+
+    .pill {
+      display: inline-block;
+      margin: 6px 6px 0 0;
+      padding: 6px 10px;
+      border-radius: 999px;
+      font-size: 0.75rem;
+      background: #060b18;
+      border: 1px solid var(--border);
+    }
+
+    .mono {
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      font-size: 0.85rem;
+      white-space: pre-wrap;
+      background: #060b18;
+      padding: 12px;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      margin-top: 8px;
+    }
+
+    footer {
+      text-align: center;
+      padding: 16px;
+      color: var(--muted);
+      font-size: 0.8rem;
+    }
+
+    @media (max-width: 900px) {
+      main { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>RAG Visual Explorer — 7 Step Pipeline</h1>
+  <p>See chunking, embeddings, retrieval, prompting, and generation happen step‑by‑step</p>
+</header>
+
+<main>
+  <!-- =====================================================
+       LEFT PANEL – USER INPUTS
+       ===================================================== -->
+  <div class="card">
+    <h2>Input & Controls</h2>
+
+    <!-- STEP 1: DOCUMENT + CHUNKING CONTROLS -->
+    <label>Knowledge Base Text</label>
+    <textarea id="sourceText" rows="6">RAG stands for Retrieval Augmented Generation. It improves LLM accuracy by retrieving relevant external context before answering a query.</textarea>
+
+    <label>Chunk Size (words)</label>
+    <input id="chunkSize" type="number" value="8" />
+
+    <label>Sliding Window (overlap)</label>
+    <input id="overlap" type="number" value="2" />
+
+    <button onclick="chunkText()">1️⃣ Chunk Text</button>
+
+    <!-- STEP 4: QUERY -->
+    <hr style="margin:20px 0; border-color: var(--border);" />
+
+    <label>User Query</label>
+    <input id="userQuery" placeholder="How does RAG help LLMs?" />
+
+    <label>Top‑N Chunks</label>
+    <input id="topN" type="number" value="2" />
+
+    <button class="secondary" onclick="askQuery()">4️⃣ Ask Question</button>
+  </div>
+
+  <!-- =====================================================
+       RIGHT PANEL – PIPELINE VISUALIZATION
+       ===================================================== -->
+  <div class="card">
+    <h2>RAG Pipeline</h2>
+
+    <div id="step1" class="step">
+      <strong>1. Chunking</strong>
+      <div id="chunks"></div>
+    </div>
+
+    <div id="step2" class="step">
+      <strong>2. Create Embeddings</strong><br />
+      <button onclick="createEmbeddings()">2️⃣ Create Vectors</button>
+      <div id="vectors"></div>
+    </div>
+
+    <div id="step3" class="step">
+      <strong>3. Save to Vector Store</strong><br />
+      <button onclick="saveVectors()">3️⃣ Save Vectors</button>
+    </div>
+
+    <div id="step5" class="step">
+      <strong>5. Top‑N Retrieval (Similarity Search)</strong>
+      <div id="retrieved"></div>
+    </div>
+
+    <div id="step6" class="step">
+      <strong>6. System Prompt Construction</strong>
+      <div id="prompt" class="mono"></div>
+    </div>
+
+    <div id="step7" class="step">
+      <strong>7. LLM Answer</strong>
+      <div id="answer" class="mono"></div>
+    </div>
+  </div>
+</main>
+
+<footer>Pure HTML • CSS • JavaScript — conceptual RAG simulator</footer>
+
+<!-- =====================================================
+     JAVASCRIPT – RAG LOGIC (SIMULATED)
+     ===================================================== -->
+<script>
+  let chunks = [];
+  let vectors = [];
+
+  function mark(stepId, state) {
+    const el = document.getElementById(stepId);
+    el.classList.remove('active', 'done');
+    el.classList.add(state);
+  }
+
+  // STEP 1: Chunking with size + overlap
+  function chunkText() {
+    mark('step1', 'active');
+
+    const text = document.getElementById('sourceText').value.split(' ');
+    const size = Number(document.getElementById('chunkSize').value);
+    const overlap = Number(document.getElementById('overlap').value);
+
+    chunks = [];
+    for (let i = 0; i < text.length; i += size - overlap) {
+      chunks.push(text.slice(i, i + size).join(' '));
+    }
+
+    const container = document.getElementById('chunks');
+    container.innerHTML = '';
+    chunks.forEach(c => container.innerHTML += `<span class="pill">${c}</span>`);
+
+    mark('step1', 'done');
+  }
+
+  // STEP 2: Fake vector embeddings
+  function createEmbeddings() {
+    mark('step2', 'active');
+
+    /*
+      Real world:
+      Each chunk → embedding model → high‑dimensional vector
+      Here:
+      We simulate vectors using random numbers for learning.
+    */
+    vectors = chunks.map(c => ({
+      text: c,
+      vector: Array.from({ length: 5 }, () => Math.random())
+    }));
+
+    const vDiv = document.getElementById('vectors');
+    vDiv.innerHTML = '';
+    vectors.forEach(v => vDiv.innerHTML += `<span class="pill">[${v.vector.map(n => n.toFixed(2)).join(', ')}]</span>`);
+
+    mark('step2', 'done');
+  }
+
+  // STEP 3: Save to localStorage (vector DB simulation)
+  function saveVectors() {
+    mark('step3', 'active');
+    localStorage.setItem('vectorStore', JSON.stringify(vectors));
+    mark('step3', 'done');
+  }
+
+  // Cosine similarity
+  function cosineSim(a, b) {
+    const dot = a.reduce((s, v, i) => s + v * b[i], 0);
+    const magA = Math.sqrt(a.reduce((s, v) => s + v*v, 0));
+    const magB = Math.sqrt(b.reduce((s, v) => s + v*v, 0));
+    return dot / (magA * magB);
+  }
+
+  // STEP 4–7: Query → Retrieve → Prompt → Answer
+  function askQuery() {
+    const store = JSON.parse(localStorage.getItem('vectorStore')) || [];
+    if (!store.length) return alert('No vectors stored yet');
+
+    // Embed query (fake)
+    const queryVector = Array.from({ length: 5 }, () => Math.random());
+
+    // STEP 5: Similarity search
+    mark('step5', 'active');
+    const topN = Number(document.getElementById('topN').value);
+
+    const ranked = store
+      .map(v => ({ ...v, score: cosineSim(queryVector, v.vector) }))
+      .sort((a,b) => b.score - a.score)
+      .slice(0, topN);
+
+    const rDiv = document.getElementById('retrieved');
+    rDiv.innerHTML = '';
+    ranked.forEach(r => rDiv.innerHTML += `<span class="pill">${r.text}</span>`);
+    mark('step5', 'done');
+
+    // STEP 6: Prompt construction
+    mark('step6', 'active');
+    const query = document.getElementById('userQuery').value;
+    const context = ranked.map((r,i) => `"chunk_${i+1}: ${r.text}"`).join(', ');
+
+    const systemPrompt = `Answer the following user's query based on the given context:\nUser Query: ${query}\nContext: ${context}`;
+    document.getElementById('prompt').textContent = systemPrompt;
+    mark('step6', 'done');
+
+    // STEP 7: LLM answer (simulated)
+    mark('step7', 'active');
+    document.getElementById('answer').textContent = "RAG helps LLMs by grounding responses in retrieved, relevant context instead of relying only on training data.";
+    mark('step7', 'done');
+  }
+</script>
+
+</body>
+</html>
